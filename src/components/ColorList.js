@@ -1,39 +1,88 @@
 import React, { useState } from "react";
-import axios from "axios";
+import EditMenu from "./EditMenu";
+import axiosWithAuth from "../helpers/axiosWithAuth";
 
 const initialColor = {
-  color: "",
-  code: { hex: "" }
+    color: "",
+    code: { hex: "" },
 };
 
 const ColorList = ({ colors, updateColors }) => {
-  const [editing, setEditing] = useState(false);
-  const [colorToEdit, setColorToEdit] = useState(initialColor);
+    const [editing, setEditing] = useState(false);
+    const [colorToEdit, setColorToEdit] = useState(initialColor);
 
-  const editColor = color => {
-    setEditing(true);
-    setColorToEdit(color);
-  };
+    const editColor = (color) => {
+        setEditing(true);
+        setColorToEdit(color);
+    };
 
-  const saveEdit = e => {
-    e.preventDefault();
+    const saveEdit = (e) => {
+        e.preventDefault();
+        axiosWithAuth()
+            .put(`/colors/${colorToEdit.id}`, colorToEdit)
+            .then((res) => {
+                setEditing(false);
+                updateColors(
+                    colors.map((color) => {
+                        return color.id === colorToEdit.id ? res.data : color;
+                    })
+                );
+            })
+            .catch((err) => {
+                console.log(err);
+            });
+    };
 
-  };
+    const deleteColor = (color) => {
+        axiosWithAuth()
+            .delete(`/colors/${color.id}`)
+            .then((res) => {
+                updateColors(
+                    colors.filter(
+                        (colorToDelete) => colorToDelete.id !== color.id
+                    )
+                );
+            })
+            .catch((err) => {
+                console.log(err);
+            });
+    };
 
-  const deleteColor = color => {
-  };
-
-  return (
-    <div className="colors-wrap">
-      <p>colors</p>
-      <ul>
-        {colors.map(color => <Color key={color.id} editing={editing} color={color} editColor={editColor} deleteColor={deleteColor}/>)}
-      </ul>
-      
-      { editing && <EditMenu colorToEdit={colorToEdit} saveEdit={saveEdit} setColorToEdit={setColorToEdit} setEditing={setEditing}/> }
-
-    </div>
-  );
+    return (
+        <div className="colors-wrap">
+            <p>colors</p>
+            <ul>
+                {colors.map((color) => (
+                    <li key={color.color} onClick={() => editColor(color)}>
+                        <span>
+                            <span
+                                data-testid="colors"
+                                className="delete"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteColor(color);
+                                }}>
+                                x
+                            </span>{" "}
+                            {color.color}
+                        </span>
+                        <div
+                            className="color-box"
+                            style={{ backgroundColor: color.code.hex }}
+                        />
+                    </li>
+                ))}
+            </ul>
+            {editing && (
+                <EditMenu
+                    colorToEdit={colorToEdit}
+                    saveEdit={saveEdit}
+                    setColorToEdit={setColorToEdit}
+                    setEditing={setEditing}
+                />
+            )}
+        </div>
+    );
 };
 
 export default ColorList;
